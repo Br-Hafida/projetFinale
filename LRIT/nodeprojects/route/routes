@@ -1,0 +1,67 @@
+var express = require('express');
+var studentController = require('../src/student/studentController');
+var professeurController = require('../src/professeur/professeurController');
+var path = require('path');
+var articleService = require('../src/article/articleService');
+const upload = require('../src/article/upload');
+const articleController = require('../src/article/articleController');
+const router = express.Router();
+// Route pour la génération de l'URL de téléchargement-------------------------------------------------------------
+router.get('/uploads/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, '..', 'uploads', filename);
+    res.download(filePath, (err) => {
+      if (err) {
+        console.log(err);
+        res.status(404).json({ error: "Fichier non trouvé" });
+      }
+    });
+  });
+  
+  
+  
+  
+  
+  // ----------ajouter un article-----------
+  router.post('/article/create', upload.single('fichier'), async (req, res) => {
+      if (!req.file) {
+        res.status(400).json({ error: "Aucun fichier n'a été téléchargé" });
+        return;
+      }
+    
+      console.log('Nom du fichier:', req.file.filename);
+      console.log('Chemin du fichier:', req.file.path);
+    
+      try {
+        var status = await articleService.createArticleDBService(req.body, req.file.path);
+        console.log(status);
+    
+        if (status) {
+          res.send({ "status": true, "message": "Article created successfully" });
+        } else {
+          res.send({ "status": false, "message": "Error creating article" });
+        }
+      } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+  //---------------------------- Route pour récupérer tous les articles---------------------------
+  router.get('/articles/getAll', articleController.getDataConntrollerfn);
+//-----------------------------------Router thesard -----------------------------------------
+router.route('/student/login').post(studentController.loginUserControllerFn);
+router.route('/student/create').post(studentController.createStudentControllerFn);
+router.route('/student/send').post(studentController.sendConfirmationEmail);
+router.route('/student/:email').get(studentController.getStudentByEmailControllerFn);
+router.route('/students/getAll').get(studentController.getDataConntrollerfn);
+router.route('/student/:email/archive-and-delete').post(studentController.archiveAndDeleteStudentControllerFn);
+router.route('/students/:id').get(studentController.getStudentByIdControllerFn);
+router.route('/student/:id/update').post(studentController.updateStudentControllerFn);
+router.route('/archives/getAll').get(studentController.getArchiveDataController);
+//------------------------------Router of Professeur ---------------------------------
+router.route('/professeur/create').post(professeurController.createProfesseurControllerFn);
+router.route('/professeurs/getAll').get(professeurController.getDataConntrollerfn);
+router.route('/professeur/:email/archive-and-delete').post(professeurController.archiveAndDeleteProfesseurControllerFn);
+router.route('/archiveprofesseurs/getAll').get(professeurController.getArchiveProfesseurDataController);
+
+module.exports = router;
